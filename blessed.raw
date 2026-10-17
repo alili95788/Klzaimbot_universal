@@ -1,0 +1,927 @@
+local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
+
+local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
+local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+--------------------------------------------------
+-- THEME
+--------------------------------------------------
+
+ThemeManager:SetLibrary(Library)
+ThemeManager:SetDefaultTheme({
+    MainColor = "272822",
+    FontFace = "Fantasy",
+    FontColor = "f8f8f2",
+    OutlineColor = "49483e",
+    BackgroundColor = "000000",
+    BackgroundImage = "",
+    AccentColor = "cc00ff",
+})
+
+local Window = Library:CreateWindow({
+    Title = "Klz Hub",
+    Center = true,
+    AutoShow = true,
+})
+
+local Tabs = {
+    Aimbot = Window:AddTab("Aimbot"),
+    HitboxExpander = Window:AddTab("Hitbox Expander"),
+    Visuals = Window:AddTab("Visuals"),
+    LocalPlayer = Window:AddTab("LocalPlayer"),
+    ["UI Settings"] = Window:AddTab("UI Settings"),
+}
+
+--------------------------------------------------
+-- SETTINGS (EVERY FEATURE STARTS DISABLED)
+--------------------------------------------------
+
+local Settings = {
+    ESPEnabled = false,
+    Box = false,
+    Skeleton = false,
+    Name = false,
+    Distance = false,
+    Health = false,
+    TeamCheck = false,
+    Infinite = false,
+    MaxDistance = 10000,
+
+    WalkSpeedEnabled = false,
+    WalkSpeed = 16,
+    JumpPowerEnabled = false,
+    JumpPower = 50,
+
+    Stretched = false,
+    StretchIntensity = 0.75,
+    Noclip = false,
+    TPTool = false,
+}
+
+local ESPColor = {
+    Box = Color3.fromRGB(204, 0, 255),
+    Skeleton = Color3.fromRGB(245, 245, 245),
+    Text = Color3.fromRGB(248, 248, 242),
+    Outline = Color3.fromRGB(8, 8, 10),
+}
+
+--------------------------------------------------
+-- VISUALS TAB
+--------------------------------------------------
+
+local Visuals = Tabs.Visuals:AddLeftGroupbox("Visuals")
+local Range = Tabs.Visuals:AddRightGroupbox("Distance")
+
+Visuals:AddToggle("ESPEnabled", {
+    Text = "Enable ESP",
+    Default = false,
+    Callback = function(value)
+        Settings.ESPEnabled = value
+    end,
+})
+
+Visuals:AddToggle("ESPBox", {
+    Text = "Box ESP",
+    Default = false,
+    Callback = function(value)
+        Settings.Box = value
+    end,
+})
+
+Visuals:AddToggle("ESPSkeleton", {
+    Text = "Skeleton ESP",
+    Default = false,
+    Callback = function(value)
+        Settings.Skeleton = value
+    end,
+})
+
+Visuals:AddToggle("ESPName", {
+    Text = "Player Name",
+    Default = false,
+    Callback = function(value)
+        Settings.Name = value
+    end,
+})
+
+Visuals:AddToggle("ESPDistance", {
+    Text = "Distance",
+    Default = false,
+    Callback = function(value)
+        Settings.Distance = value
+    end,
+})
+
+Visuals:AddToggle("ESPHealth", {
+    Text = "Health",
+    Default = false,
+    Callback = function(value)
+        Settings.Health = value
+    end,
+})
+
+Visuals:AddToggle("ESPTeamCheck", {
+    Text = "Team Check",
+    Default = false,
+    Callback = function(value)
+        Settings.TeamCheck = value
+    end,
+})
+
+Range:AddToggle("ESPInfiniteDistance", {
+    Text = "Infinite Distance",
+    Default = false,
+    Callback = function(value)
+        Settings.Infinite = value
+    end,
+})
+
+Range:AddSlider("ESPMaxDistance", {
+    Text = "Max Distance",
+    Default = 10000,
+    Min = 0,
+    Max = 10000,
+    Rounding = 0,
+    Callback = function(value)
+        Settings.MaxDistance = value
+    end,
+})
+
+--------------------------------------------------
+-- LOCALPLAYER: MOVEMENT, DISPLAY, UTILITIES
+--------------------------------------------------
+
+local Movement = Tabs.LocalPlayer:AddLeftGroupbox("Movement")
+local Display = Tabs.LocalPlayer:AddRightGroupbox("Display")
+local Utilities = Tabs.LocalPlayer:AddRightGroupbox("Utilities")
+
+local OriginalValues = setmetatable({}, { __mode = "k" })
+
+local function getHumanoid()
+    local character = LocalPlayer.Character
+    if not character then
+        return nil
+    end
+    return character:FindFirstChildOfClass("Humanoid")
+end
+
+local function cacheHumanoid(humanoid)
+    if not humanoid or OriginalValues[humanoid] then
+        return
+    end
+
+    OriginalValues[humanoid] = {
+        WalkSpeed = humanoid.WalkSpeed,
+        JumpPower = humanoid.JumpPower,
+        UseJumpPower = humanoid.UseJumpPower,
+    }
+end
+
+local function applyMovement()
+    local humanoid = getHumanoid()
+    if not humanoid then
+        return
+    end
+
+    cacheHumanoid(humanoid)
+    local original = OriginalValues[humanoid]
+
+    if Settings.WalkSpeedEnabled then
+        humanoid.WalkSpeed = Settings.WalkSpeed
+    else
+        humanoid.WalkSpeed = original.WalkSpeed
+    end
+
+    if Settings.JumpPowerEnabled then
+        humanoid.UseJumpPower = true
+        humanoid.JumpPower = Settings.JumpPower
+    else
+        humanoid.JumpPower = original.JumpPower
+        humanoid.UseJumpPower = original.UseJumpPower
+    end
+end
+
+Movement:AddToggle("WalkSpeedEnabled", {
+    Text = "Enable WalkSpeed",
+    Default = false,
+    Callback = function(value)
+        Settings.WalkSpeedEnabled = value
+        applyMovement()
+    end,
+})
+
+Movement:AddSlider("WalkSpeedValue", {
+    Text = "WalkSpeed",
+    Default = 16,
+    Min = 0,
+    Max = 345,
+    Rounding = 0,
+    Callback = function(value)
+        Settings.WalkSpeed = value
+        if Settings.WalkSpeedEnabled then
+            applyMovement()
+        end
+    end,
+})
+
+Movement:AddToggle("JumpPowerEnabled", {
+    Text = "Enable JumpPower",
+    Default = false,
+    Callback = function(value)
+        Settings.JumpPowerEnabled = value
+        applyMovement()
+    end,
+})
+
+Movement:AddSlider("JumpPowerValue", {
+    Text = "JumpPower",
+    Default = 50,
+    Min = 0,
+    Max = 345,
+    Rounding = 0,
+    Callback = function(value)
+        Settings.JumpPower = value
+        if Settings.JumpPowerEnabled then
+            applyMovement()
+        end
+    end,
+})
+
+-- Stretched: this is a camera-matrix distortion, not a true display-resolution change.
+local function stopStretched()
+    pcall(function()
+        RunService:UnbindFromRenderStep("KlzHub_Stretched")
+    end)
+end
+
+local function startStretched()
+    stopStretched()
+
+    RunService:BindToRenderStep(
+        "KlzHub_Stretched",
+        Enum.RenderPriority.Camera.Value + 1,
+        function()
+            if not Settings.Stretched then
+                return
+            end
+
+            local camera = workspace.CurrentCamera
+            if not camera then
+                return
+            end
+
+            local cf = camera.CFrame
+            local intensity = Settings.StretchIntensity
+
+            camera.CFrame = CFrame.fromMatrix(
+                cf.Position,
+                cf.RightVector,
+                cf.UpVector * intensity,
+                cf.ZVector
+            )
+        end
+    )
+end
+
+Display:AddToggle("StretchedEnabled", {
+    Text = "Stretched",
+    Default = false,
+    Callback = function(value)
+        Settings.Stretched = value
+        if value then
+            startStretched()
+        else
+            stopStretched()
+        end
+    end,
+})
+
+Display:AddSlider("StretchedIntensity", {
+    Text = "Stretch Intensity",
+    Default = 0.75,
+    Min = 0.5,
+    Max = 1.2,
+    Rounding = 2,
+    Callback = function(value)
+        Settings.StretchIntensity = value
+    end,
+})
+
+-- Noclip. Disable collision before each physics simulation and also
+-- handle parts added later or a freshly spawned character.
+local noclipConnection
+local noclipDescendantConnection
+local noclipCharacter
+local originalCollision = setmetatable({}, { __mode = "k" })
+
+local function makePartNonCollidable(instance)
+    if not instance:IsA("BasePart") then
+        return
+    end
+
+    if originalCollision[instance] == nil then
+        originalCollision[instance] = instance.CanCollide
+    end
+    instance.CanCollide = false
+end
+
+local function watchNoclipCharacter(character)
+    if noclipDescendantConnection then
+        noclipDescendantConnection:Disconnect()
+        noclipDescendantConnection = nil
+    end
+
+    noclipCharacter = character
+    if not character then
+        return
+    end
+
+    for _, instance in ipairs(character:GetDescendants()) do
+        makePartNonCollidable(instance)
+    end
+
+    noclipDescendantConnection = character.DescendantAdded:Connect(function(instance)
+        if Settings.Noclip then
+            makePartNonCollidable(instance)
+        end
+    end)
+end
+
+local function setNoclip(enabled)
+    Settings.Noclip = enabled
+
+    if noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
+    end
+    if noclipDescendantConnection then
+        noclipDescendantConnection:Disconnect()
+        noclipDescendantConnection = nil
+    end
+    noclipCharacter = nil
+
+    if enabled then
+        watchNoclipCharacter(LocalPlayer.Character)
+
+        -- PreSimulation is preferred; Stepped is a fallback for older clients.
+        local physicsSignal = RunService.PreSimulation or RunService.Stepped
+        noclipConnection = physicsSignal:Connect(function()
+            local character = LocalPlayer.Character
+            if character ~= noclipCharacter then
+                watchNoclipCharacter(character)
+            end
+            if not character then
+                return
+            end
+
+            -- Reapply every physics frame in case another local script resets it.
+            for _, instance in ipairs(character:GetDescendants()) do
+                makePartNonCollidable(instance)
+            end
+        end)
+    else
+        for part, canCollide in pairs(originalCollision) do
+            if part and part.Parent then
+                part.CanCollide = canCollide
+            end
+            originalCollision[part] = nil
+        end
+    end
+end
+
+Utilities:AddToggle("NoclipEnabled", {
+    Text = "Noclip",
+    Default = false,
+    Callback = function(value)
+        setNoclip(value)
+    end,
+})
+
+-- TP Tool. Equip it, then click/tap a spot to move there.
+local tpTool
+local mouse = LocalPlayer:GetMouse()
+
+local function removeTPTool()
+    Settings.TPTool = false
+    if tpTool then
+        tpTool:Destroy()
+        tpTool = nil
+    end
+end
+
+local function createTPTool()
+    if not Settings.TPTool then
+        return
+    end
+
+    if tpTool then
+        tpTool:Destroy()
+        tpTool = nil
+    end
+
+    local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
+        or LocalPlayer:WaitForChild("Backpack")
+
+    local tool = Instance.new("Tool")
+    tool.Name = "TP Tool"
+    tool.ToolTip = "Equip and click a location to teleport"
+    tool.RequiresHandle = false
+    tool.CanBeDropped = false
+
+    tool.Activated:Connect(function()
+        if not Settings.TPTool then
+            return
+        end
+
+        local character = LocalPlayer.Character
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+        local root = character and character:FindFirstChild("HumanoidRootPart")
+
+        if not character or not humanoid or humanoid.Health <= 0 or not root then
+            return
+        end
+
+        local hit = mouse.Hit
+        if hit then
+            local rotation = root.CFrame - root.Position
+            character:PivotTo(CFrame.new(hit.Position + Vector3.new(0, 3, 0)) * rotation)
+        end
+    end)
+
+    tpTool = tool
+    tool.Parent = backpack
+end
+
+Utilities:AddToggle("TPToolEnabled", {
+    Text = "TP Tool",
+    Default = false,
+    Callback = function(value)
+        Settings.TPTool = value
+
+        if value then
+            createTPTool()
+        else
+            removeTPTool()
+        end
+    end,
+})
+
+LocalPlayer.CharacterAdded:Connect(function(character)
+    task.spawn(function()
+        local humanoid = character:WaitForChild("Humanoid", 10)
+        if humanoid then
+            cacheHumanoid(humanoid)
+            applyMovement()
+        end
+
+        if Settings.TPTool then
+            createTPTool()
+        end
+    end)
+end)
+
+local currentHumanoid = getHumanoid()
+if currentHumanoid then
+    cacheHumanoid(currentHumanoid)
+end
+
+--------------------------------------------------
+-- ESP OVERLAY
+--------------------------------------------------
+
+local oldOverlay = PlayerGui:FindFirstChild("KlzESPOverlay")
+if oldOverlay then
+    oldOverlay:Destroy()
+end
+
+local GUI = Instance.new("ScreenGui")
+GUI.Name = "KlzESPOverlay"
+GUI.ResetOnSpawn = false
+GUI.IgnoreGuiInset = true
+GUI.DisplayOrder = 2
+GUI.ZIndexBehavior = Enum.ZIndexBehavior.Global
+GUI.Parent = PlayerGui
+
+local Canvas = Instance.new("Frame")
+Canvas.Name = "Overlay"
+Canvas.Size = UDim2.fromScale(1, 1)
+Canvas.BackgroundTransparency = 1
+Canvas.Parent = GUI
+
+--------------------------------------------------
+-- SKELETON PARTS
+--------------------------------------------------
+
+local Links = {
+    -- R15
+    {"Head", "UpperTorso"},
+    {"UpperTorso", "LowerTorso"},
+    {"UpperTorso", "LeftUpperArm"},
+    {"LeftUpperArm", "LeftLowerArm"},
+    {"LeftLowerArm", "LeftHand"},
+    {"UpperTorso", "RightUpperArm"},
+    {"RightUpperArm", "RightLowerArm"},
+    {"RightLowerArm", "RightHand"},
+    {"LowerTorso", "LeftUpperLeg"},
+    {"LeftUpperLeg", "LeftLowerLeg"},
+    {"LeftLowerLeg", "LeftFoot"},
+    {"LowerTorso", "RightUpperLeg"},
+    {"RightUpperLeg", "RightLowerLeg"},
+    {"RightLowerLeg", "RightFoot"},
+
+    -- R6
+    {"Head", "Torso"},
+    {"Torso", "Left Arm"},
+    {"Torso", "Right Arm"},
+    {"Torso", "Left Leg"},
+    {"Torso", "Right Leg"},
+}
+
+local PartNames = {}
+for _, link in ipairs(Links) do
+    PartNames[link[1]] = true
+    PartNames[link[2]] = true
+end
+
+local Overlays = {}
+
+local function makeFrame(name, z, frameColor, isLine)
+    local frame = Instance.new("Frame")
+    frame.Name = name
+    frame.BackgroundColor3 = frameColor
+    frame.BorderSizePixel = 0
+    frame.Visible = false
+    frame.ZIndex = z
+
+    if isLine then
+        frame.AnchorPoint = Vector2.new(0.5, 0.5)
+    end
+
+    frame.Parent = Canvas
+    return frame
+end
+
+local function makeText(name, width, height)
+    local label = Instance.new("TextLabel")
+    label.Name = name
+    label.AnchorPoint = Vector2.new(0.5, 0)
+    label.Size = UDim2.fromOffset(width, height)
+    label.BackgroundTransparency = 1
+    label.BorderSizePixel = 0
+    label.TextColor3 = ESPColor.Text
+    label.TextStrokeColor3 = ESPColor.Outline
+    label.TextStrokeTransparency = 0.15
+    label.TextSize = 11
+    label.Font = Enum.Font.GothamMedium
+    label.Visible = false
+    label.ZIndex = 10
+    label.Parent = Canvas
+    return label
+end
+
+local function createOverlay(target)
+    if target == LocalPlayer or Overlays[target] then
+        return
+    end
+
+    local o = {
+        Objects = {},
+        Bones = {},
+        Joints = {},
+        Corners = {},
+    }
+
+    local function keep(object)
+        table.insert(o.Objects, object)
+        return object
+    end
+
+    for _, link in ipairs(Links) do
+        table.insert(o.Bones, {
+            A = link[1],
+            B = link[2],
+            Outline = keep(makeFrame("SkeletonOutline", 1, ESPColor.Outline, true)),
+            Line = keep(makeFrame("SkeletonLine", 2, ESPColor.Skeleton, true)),
+        })
+    end
+
+    for name in pairs(PartNames) do
+        o.Joints[name] = true
+    end
+
+    for i = 1, 8 do
+        o.Corners[i] = {
+            Outline = keep(makeFrame("BoxOutline", 5, ESPColor.Outline)),
+            Line = keep(makeFrame("BoxCorner", 6, ESPColor.Box)),
+        }
+    end
+
+    o.HealthBack = keep(makeFrame("HealthOutline", 7, ESPColor.Outline))
+    o.HealthFill = keep(makeFrame("HealthFill", 8, ESPColor.Box))
+    o.HealthFill.AnchorPoint = Vector2.new(0, 1)
+
+    o.Name = keep(makeText("PlayerName", 220, 17))
+    o.Distance = keep(makeText("Distance", 140, 16))
+    o.HealthText = keep(makeText("HealthText", 100, 16))
+    o.Distance.TextColor3 = ESPColor.Box
+
+    Overlays[target] = o
+end
+
+local function hideOverlay(o)
+    for _, object in ipairs(o.Objects) do
+        object.Visible = false
+    end
+end
+
+for _, target in ipairs(Players:GetPlayers()) do
+    createOverlay(target)
+end
+
+Players.PlayerAdded:Connect(createOverlay)
+
+Players.PlayerRemoving:Connect(function(target)
+    local o = Overlays[target]
+    if o then
+        for _, object in ipairs(o.Objects) do
+            object:Destroy()
+        end
+        Overlays[target] = nil
+    end
+end)
+
+--------------------------------------------------
+-- BOX PROJECTION
+--------------------------------------------------
+
+local Signs = {
+    {-1, -1, -1}, {1, -1, -1},
+    {-1, 1, -1}, {1, 1, -1},
+    {-1, -1, 1}, {1, -1, 1},
+    {-1, 1, 1}, {1, 1, 1},
+}
+
+local Edges = {
+    {1, 2}, {1, 3}, {2, 4}, {3, 4},
+    {5, 6}, {5, 7}, {6, 8}, {7, 8},
+    {1, 5}, {2, 6}, {3, 7}, {4, 8},
+}
+
+local function getBounds(character, camera)
+    local ok, cf, size = pcall(function()
+        return character:GetBoundingBox()
+    end)
+
+    if not ok then
+        return nil
+    end
+
+    local half = size * 0.5
+    local cameraCF = camera.CFrame
+    local points = {}
+    local localPoints = {}
+    local depths = {}
+    local near = 0.1
+
+    for i, sign in ipairs(Signs) do
+        local worldPoint = cf:PointToWorldSpace(Vector3.new(
+            half.X * sign[1],
+            half.Y * sign[2],
+            half.Z * sign[3]
+        ))
+
+        local p = cameraCF:PointToObjectSpace(worldPoint)
+        local depth = -p.Z
+        localPoints[i] = p
+        depths[i] = depth
+
+        if depth >= near then
+            local screen = camera:WorldToViewportPoint(worldPoint)
+            table.insert(points, Vector2.new(screen.X, screen.Y))
+        end
+    end
+
+    for _, edge in ipairs(Edges) do
+        local a, b = edge[1], edge[2]
+        local da, db = depths[a], depths[b]
+
+        if (da >= near) ~= (db >= near) then
+            local denominator = db - da
+            if math.abs(denominator) > 0.00001 then
+                local t = (near - da) / denominator
+                local p = localPoints[a]:Lerp(localPoints[b], t)
+                local worldPoint = cameraCF:PointToWorldSpace(p)
+                local screen = camera:WorldToViewportPoint(worldPoint)
+                table.insert(points, Vector2.new(screen.X, screen.Y))
+            end
+        end
+    end
+
+    if #points == 0 then
+        return nil
+    end
+
+    local minX, minY = math.huge, math.huge
+    local maxX, maxY = -math.huge, -math.huge
+
+    for _, p in ipairs(points) do
+        minX = math.min(minX, p.X)
+        minY = math.min(minY, p.Y)
+        maxX = math.max(maxX, p.X)
+        maxY = math.max(maxY, p.Y)
+    end
+
+    local view = camera.ViewportSize
+    if maxX < 0 or minX > view.X or maxY < 0 or minY > view.Y then
+        return nil
+    end
+
+    return
+        math.clamp(minX, 0, view.X),
+        math.clamp(minY, 0, view.Y),
+        math.clamp(maxX, 0, view.X),
+        math.clamp(maxY, 0, view.Y)
+end
+
+--------------------------------------------------
+-- ESP DRAWING
+--------------------------------------------------
+
+local function drawLine(pair, a, b)
+    local delta = b - a
+    local length = delta.Magnitude
+    local position = UDim2.fromOffset(
+        (a.X + b.X) * 0.5,
+        (a.Y + b.Y) * 0.5
+    )
+    local rotation = math.deg(math.atan2(delta.Y, delta.X))
+
+    pair.Outline.Position = position
+    pair.Outline.Size = UDim2.fromOffset(length, 3)
+    pair.Outline.Rotation = rotation
+    pair.Outline.Visible = length > 1
+
+    pair.Line.Position = position
+    pair.Line.Size = UDim2.fromOffset(length, 1.5)
+    pair.Line.Rotation = rotation
+    pair.Line.Visible = length > 1
+end
+
+local function drawBox(o, x1, y1, x2, y2)
+    local width = x2 - x1
+    local height = y2 - y1
+    local cw = math.min(math.max(width * 0.25, 4), width * 0.5)
+    local ch = math.min(math.max(height * 0.2, 4), height * 0.5)
+    local t = 1.5
+
+    local segments = {
+        {x1, y1, cw, t},
+        {x1, y1, t, ch},
+        {x2 - cw, y1, cw, t},
+        {x2 - t, y1, t, ch},
+        {x1,y2 - t, cw, t},
+        {x1, y2 - ch, t, ch},
+        {x2 - cw, y2 - t, cw, t},
+        {x2 - t, y2 - ch, t, ch},
+    }
+
+    for i, s in ipairs(segments) do
+        local pair = o.Corners[i]
+
+        pair.Outline.Position = UDim2.fromOffset(s[1] - 1, s[2] - 1)
+        pair.Outline.Size = UDim2.fromOffset(s[3] + 2, s[4] + 2)
+        pair.Outline.Visible = true
+
+        pair.Line.Position = UDim2.fromOffset(s[1], s[2])
+        pair.Line.Size = UDim2.fromOffset(s[3], s[4])
+        pair.Line.Visible = true
+    end
+end
+
+--------------------------------------------------
+-- ESP UPDATE
+--------------------------------------------------
+
+RunService.RenderStepped:Connect(function()
+    local camera = workspace.CurrentCamera
+    local character = LocalPlayer.Character
+    local localRoot = character and character:FindFirstChild("HumanoidRootPart")
+
+    if not camera then
+        return
+    end
+
+    for target, o in pairs(Overlays) do
+        local model = target.Character
+        local humanoid = model and model:FindFirstChildOfClass("Humanoid")
+        local root = model and model:FindFirstChild("HumanoidRootPart")
+
+        if not Settings.ESPEnabled or not localRoot or not root
+            or not humanoid or humanoid.Health <= 0 then
+            hideOverlay(o)
+            continue
+        end
+
+        if Settings.TeamCheck and LocalPlayer.Team
+            and target.Team == LocalPlayer.Team then
+            hideOverlay(o)
+            continue
+        end
+
+        local distance = (localRoot.Position - root.Position).Magnitude
+        if not Settings.Infinite and distance > Settings.MaxDistance then
+            hideOverlay(o)
+            continue
+        end
+
+        local x1, y1, x2, y2 = getBounds(model, camera)
+        if not x1 then
+            hideOverlay(o)
+            continue
+        end
+
+        local height = y2 - y1
+        local center = (x1 + x2) * 0.5
+        local view = camera.ViewportSize
+
+        if Settings.Box then
+            drawBox(o, x1, y1, x2, y2)
+        else
+            for _, pair in ipairs(o.Corners) do
+                pair.Outline.Visible = false
+                pair.Line.Visible = false
+            end
+        end
+
+        o.Name.Visible = Settings.Name
+        o.Name.Text = target.Name
+        o.Name.Position = UDim2.fromOffset(center, math.clamp(y1 - 19, 0, view.Y - 17))
+
+        o.Distance.Visible = Settings.Distance
+        o.Distance.Text = string.format("%d studs", math.floor(distance))
+        o.Distance.Position = UDim2.fromOffset(center, math.clamp(y2 + 3, 0, view.Y - 16))
+
+        local maxHealth = math.max(humanoid.MaxHealth, 1)
+        local health = math.clamp(humanoid.Health, 0, maxHealth)
+        local percent = health / maxHealth
+
+        o.HealthText.Visible = Settings.Health
+        o.HealthText.Text = string.format("%d HP", math.floor(health))
+        o.HealthText.Position = UDim2.fromOffset(center, math.clamp(y2 + 19, 0, view.Y - 16))
+
+        o.HealthBack.Visible = Settings.Health
+        o.HealthBack.Position = UDim2.fromOffset(x1 - 6, y1)
+        o.HealthBack.Size = UDim2.fromOffset(4, height)
+
+        o.HealthFill.Visible = Settings.Health
+        o.HealthFill.Position = UDim2.fromOffset(x1 - 5, y2)
+        o.HealthFill.Size = UDim2.fromOffset(2, height * percent)
+        o.HealthFill.BackgroundColor3 = Color3.new(1 - percent, percent, 0.12)
+
+        local projected = {}
+        for partName in pairs(o.Joints) do
+            local part = model:FindFirstChild(partName)
+            if part and part:IsA("BasePart") then
+                local p = camera:WorldToViewportPoint(part.Position)
+                if p.Z > 0.1 then
+                    projected[partName] = Vector2.new(p.X, p.Y)
+                end
+            end
+        end
+
+        for _, bone in ipairs(o.Bones) do
+            local a = projected[bone.A]
+            local b = projected[bone.B]
+
+            if Settings.Skeleton and a and b then
+                drawLine(bone, a, b)
+            else
+                bone.Outline.Visible = false
+                bone.Line.Visible = false
+            end
+        end
+    end
+end)
+
+--------------------------------------------------
+-- UI SETTINGS & SAVE MANAGER
+--------------------------------------------------
+
+ThemeManager:SetFolder("KlzHub")
+SaveManager:SetLibrary(Library)
+SaveManager:SetFolder("KlzHub")
+
+ThemeManager:ApplyToTab(Tabs["UI Settings"])
+SaveManager:BuildConfigSection(Tabs["UI Settings"])
+
+Library:Notify(
+    "Thank you for using Klz Hub! We appreciate your support and hope you enjoy it.",
+    8
+)
